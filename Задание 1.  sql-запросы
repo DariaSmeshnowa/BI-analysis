@@ -11,4 +11,97 @@ WHERE time >= toDateTime('2026-04-01 00:00:00')
 GROUP BY toStartOfDay(toDateTime(time))
 ORDER BY "Уникальные пользователи" DESC
 
+График WAU
+SELECT toMonday(toDateTime(time)) AS __timestamp,
+       count(DISTINCT user_id) AS "Уникальные пользователи"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY toMonday(toDateTime(time))
+ORDER BY "Уникальные пользователи" DESC
+
 График MAU
+SELECT toStartOfMonth(toDateTime(time)) AS __timestamp,
+       count(DISTINCT user_id) AS "Уникальные пользователи"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-01-01 00:00:00')
+  AND time < toDateTime('2026-03-23 04:13:19')
+GROUP BY toStartOfMonth(toDateTime(time))
+ORDER BY "Уникальные пользователи" DESC
+
+Основные события
+
+График Лайки и просмотры
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       action AS action,
+       count(user_id) AS "События"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY action,
+         toStartOfDay(toDateTime(time))
+ORDER BY "События" DESC
+
+График CTR
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       countIf(user_id, action='like') / countIf(user_id, action='view') AS "CTR"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY toStartOfDay(toDateTime(time))
+ORDER BY "CTR" DESC
+
+График Топ постов
+SELECT post_id AS post_id,
+       countIf(action='view') AS "Просмотры",
+       countIf(action='like') AS "Лайки",
+       countIf(action='like') / countIf(action='view') AS "CTR",
+       count(DISTINCT user_id) AS "Охват"
+FROM simulator_20260320.feed_actions
+GROUP BY post_id
+ORDER BY "Просмотры" DESC
+
+Информация о пользователях
+
+График Распределение пользователей по возрасту
+SELECT age AS age,
+       count(DISTINCT user_id) AS "Распределение по возрасту"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY age
+ORDER BY "Распределение по возрасту" DESC
+
+График Пол пользователей
+SELECT if(gender = 0, 'Мужской', 'Женский') AS gender_label,
+       COUNT(DISTINCT user_id) AS "Пол пользователей"
+FROM simulator_20260320.feed_actions
+GROUP BY if(gender = 0, 'Мужской', 'Женский')
+ORDER BY "Пол пользователей" DESC
+
+График Распределение пользователей РФ по городам
+SELECT city AS city,
+       COUNT(DISTINCT user_id) AS "Город"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY city
+ORDER BY "Город" DESC
+
+График Источник трафика
+SELECT source AS source,
+                 count(DISTINCT user_id) AS "COUNT_DISTINCT(user_id)"
+FROM simulator_20260320.feed_actions
+GROUP BY source
+ORDER BY "COUNT_DISTINCT(user_id)" DESC
+
+График Уникальные пользователи в срезах по странам
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       country AS country,
+       count(DISTINCT user_id) AS "Уникальные пользователи"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY country,
+         toStartOfDay(toDateTime(time))
+ORDER BY "Уникальные пользователи" DESC
