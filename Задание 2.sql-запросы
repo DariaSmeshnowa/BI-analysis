@@ -1,0 +1,140 @@
+Пользователи сервиса
+
+Аудиторные данные
+
+График DAU, WAU, MAU
+SELECT toStartOfDay(toDateTime(day)) AS __timestamp,
+       max(active_user) AS "Лента и Мессенджер",
+       max(feed_only_users) AS "Только Лента",
+       max(message_only_users) AS "Только Мессенджер"
+FROM
+  (SELECT *
+   FROM
+     (SELECT toDate(time) as day
+      FROM simulator_20260320.feed_actions
+      UNION DISTINCT SELECT toDate(time) as day
+      FROM simulator_20260320.message_actions
+      ORDER BY day) A
+   LEFT JOIN
+     (SELECT COUNT(DISTINCT feed_only_users) as feed_only_users,
+             day
+      FROM
+        (SELECT DISTINCT B.user_id as feed_only_users,
+                         toDate(B.time) as day
+         FROM simulator_20260320.feed_actions AS B LEFT ANTI
+         JOIN simulator_20260320.message_actions AS C ON B.user_id=C.user_id
+         AND toDate(B.time)=toDate(C.time))
+      GROUP BY day) b USING(day)
+   LEFT JOIN
+     (SELECT COUNT(DISTINCT message_only_users) as message_only_users,
+             day
+      FROM
+        (SELECT DISTINCT D.user_id as message_only_users,
+                         toDate(D.time) as day
+         FROM simulator_20260320.message_actions AS D LEFT ANTI
+         JOIN simulator_20260320.feed_actions AS E ON D.user_id=E.user_id
+         AND toDate(D.time)=toDate(E.time))
+      GROUP BY day) c USING(day)
+   LEFT JOIN
+     (SELECT COUNT(DISTINCT user_id) as active_user,
+             day
+      FROM
+        (SELECT DISTINCT D.user_id,
+                         toDate(D.time) as day
+         FROM simulator_20260320.feed_actions as D
+         INNER JOIN simulator_20260320.message_actions as F ON D.user_id=F.user_id
+         AND toDate(D.time)=toDate(F.time)) T
+      GROUP BY day) d USING(day)) AS virtual_table
+GROUP BY toStartOfDay(toDateTime(day))
+ORDER BY "Лента и Мессенджер" DESC
+  
+Информация об активных пользователях
+
+График Распределение пользователей по возрасту
+SELECT age AS age,
+       count(DISTINCT active_user) AS "Распределение по возрасту"
+FROM
+  (SELECT active_user,
+          day,
+          if(gender =1, 'Женский', 'Мужской') as gender,
+          age,
+          city,
+          country,
+          os,
+          if(source = 'ads', 'Реклама', 'Органический') as source
+   FROM
+     (SELECT DISTINCT D.user_id as active_user,
+                      toDate(D.time) as day
+      FROM simulator_20260320.feed_actions as D
+      INNER JOIN simulator_20260320.message_actions as F ON D.user_id=F.user_id
+      AND toDate(D.time)=toDate(F.time)) A
+   LEFT JOIN simulator_20260320.feed_actions B ON A.active_user=B.user_id) AS virtual_table
+GROUP BY age
+ORDER BY "Распределение по возрасту" DESC
+  
+График Пол пользователей
+SELECT gender AS gender,
+       count(DISTINCT active_user) AS "COUNT_DISTINCT(active_user)"
+FROM
+  (SELECT active_user,
+          day,
+          if(gender =1, 'Женский', 'Мужской') as gender,
+          age,
+          city,
+          country,
+          os,
+          if(source = 'ads', 'Реклама', 'Органический') as source
+   FROM
+     (SELECT DISTINCT D.user_id as active_user,
+                      toDate(D.time) as day
+      FROM simulator_20260320.feed_actions as D
+      INNER JOIN simulator_20260320.message_actions as F ON D.user_id=F.user_id
+      AND toDate(D.time)=toDate(F.time)) A
+   LEFT JOIN simulator_20260320.feed_actions B ON A.active_user=B.user_id) AS virtual_table
+GROUP BY gender
+ORDER BY "COUNT_DISTINCT(active_user)" DESC
+  
+График Распределение пользователей по месту жительства
+SELECT city AS city,
+       count(DISTINCT active_user) AS "Количество пользователей в городе"
+FROM
+  (SELECT active_user,
+          day,
+          if(gender =1, 'Женский', 'Мужской') as gender,
+          age,
+          city,
+          country,
+          os,
+          if(source = 'ads', 'Реклама', 'Органический') as source
+   FROM
+     (SELECT DISTINCT D.user_id as active_user,
+                      toDate(D.time) as day
+      FROM simulator_20260320.feed_actions as D
+      INNER JOIN simulator_20260320.message_actions as F ON D.user_id=F.user_id
+      AND toDate(D.time)=toDate(F.time)) A
+   LEFT JOIN simulator_20260320.feed_actions B ON A.active_user=B.user_id) AS virtual_table
+GROUP BY city
+ORDER BY "Количество пользователей в городе" DESC
+  
+График Источник трафика
+SELECT source AS source,
+                 count(DISTINCT active_user) AS "COUNT_DISTINCT(active_user)"
+FROM
+  (SELECT active_user,
+          day,
+          if(gender =1, 'Женский', 'Мужской') as gender,
+          age,
+          city,
+          country,
+          os,
+          if(source = 'ads', 'Реклама', 'Органический') as source
+   FROM
+     (SELECT DISTINCT D.user_id as active_user,
+                      toDate(D.time) as day
+      FROM simulator_20260320.feed_actions as D
+      INNER JOIN simulator_20260320.message_actions as F ON D.user_id=F.user_id
+      AND toDate(D.time)=toDate(F.time)) A
+   LEFT JOIN simulator_20260320.feed_actions B ON A.active_user=B.user_id) AS virtual_table
+GROUP BY source
+ORDER BY "COUNT_DISTINCT(active_user)" DESC
+
