@@ -1,0 +1,93 @@
+Дашборд Retentions
+
+DAU
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       count(DISTINCT user_id) AS "Уникальные пользователи"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-03-09 00:00:00')
+  AND time < toDateTime('2026-04-02 00:00:00')
+GROUP BY toStartOfDay(toDateTime(time))
+ORDER BY "Уникальные пользователи" DESC
+
+Динамика числа новых пользователей по трафику
+SELECT start_day, uniq(user_id) AS users, if(source = 'ads', 'Платный трафик', 'Органический') as source
+FROM
+  (SELECT *
+   FROM
+     (SELECT user_id,
+             min(toDate(time)) AS start_day, source
+      FROM simulator_20260320.feed_actions
+      GROUP BY user_id, source) t1
+   JOIN
+     (SELECT DISTINCT user_id,
+                      toDate(time) AS day
+      FROM simulator_20260320.feed_actions) t2 USING user_id)
+   WHERE start_day >= toDateTime('2026-03-09 00:00:00')
+  AND start_day < toDateTime('2026-04-02 00:00:00')
+GROUP BY start_day, source
+
+Retention пользователей, общее количество
+SELECT toString(start_day) as start_date,
+          toString(day) as date,
+          count(user_id) AS users
+   FROM
+     (SELECT *
+      FROM
+        (SELECT user_id,
+                min(toDate(time)) AS start_day
+         FROM simulator_20260320.feed_actions
+         GROUP BY user_id) t1
+      JOIN
+        (SELECT DISTINCT user_id,
+                         toDate(time) AS day
+         FROM simulator_20260320.feed_actions) t2 USING user_id
+      WHERE start_day >= '2026-03-09'
+        and date >='2026-03-09'
+        and start_day <= '2026-04-02'
+        and date <='2026-04-02' )
+   GROUP BY start_day,
+            day) AS virtual_table
+GROUP BY date, start_date
+
+Retention рекламный трафик
+SELECT toString(start_day) as start_date,
+       toString(day) as date,
+       count(user_id) AS users
+FROM
+  (SELECT *
+   FROM
+     (SELECT user_id,
+             min(toDate(time)) AS start_day
+      FROM simulator_20260320.feed_actions
+      WHERe source='ads'
+      GROUP BY user_id) t1
+   JOIN
+     (SELECT DISTINCT user_id,
+                      toDate(time) AS day
+      FROM simulator_20260320.feed_actions) t2 USING user_id
+   WHERE start_day >= '2026-03-09' and date >='2026-03-09' and start_day <= '2026-04-02' and date <='2026-04-02' )
+GROUP BY start_day,
+         day
+
+DAU в срезе по странам
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       country AS country,
+       count(DISTINCT user_id) AS "DAU"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-03-10 00:00:00')
+  AND time < toDateTime('2026-03-30 00:00:00')
+GROUP BY country,
+         toStartOfDay(toDateTime(time))
+ORDER BY "DAU" DESC
+
+DAU в срезе по странам (исключая РФ)
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       country AS country,
+       count(DISTINCT user_id) AS "DAU"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-03-10 00:00:00')
+  AND time < toDateTime('2026-03-30 00:00:00')
+  AND country != 'Russia'
+GROUP BY country,
+         toStartOfDay(toDateTime(time))
+ORDER BY "DAU" DESC
