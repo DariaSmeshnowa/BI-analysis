@@ -1,0 +1,14 @@
+Лента новостей - основное
+
+Аудиторные данные
+
+График DAU
+SELECT toStartOfDay(toDateTime(time)) AS __timestamp,
+       count(DISTINCT user_id) AS "Уникальные пользователи"
+FROM simulator_20260320.feed_actions
+WHERE time >= toDateTime('2026-04-01 00:00:00')
+  AND time < toDateTime('2026-05-01 00:00:00')
+GROUP BY toStartOfDay(toDateTime(time))
+ORDER BY "Уникальные пользователи" DESC
+
+График MAU
